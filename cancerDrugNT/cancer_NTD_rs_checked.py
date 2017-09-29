@@ -1,11 +1,15 @@
 # coding:utf-8
 # pzw
 import pandas as pd
+import yaml
 
-df = pd.read_excel('temp.xlsx', sheetname = 0, header = 0)
-med_stan = pd.read_excel('med.xlsx', sheetname = 0, header = 0)
-writer = pd.ExcelWriter('out_all' + '.xlsx')
-out_des = open('out_des.txt', 'w')
+f = open('cancerDrugNoTarget.yaml')
+conf = yaml.load(f)
+
+df = pd.read_excel(conf['director'] + '\\' + 'temp.xlsx', sheetname = 0, header = 0)
+med_stan = pd.read_excel(r'config\DataBase\med.xlsx', sheetname = 0, header = 0)
+writer = pd.ExcelWriter(conf['director'] + '\\' + 'out_all.xlsx')
+out_des = open(conf['director'] + '\\' + 'out_des.txt', 'w')
 
 df.columns = ['med', 'gene', 'rsid', 'genetype', 'sen', 'pmid', 'level', 'cancer']
 var_detected = pd.DataFrame(columns=['gene', 'rsid', 'alle', 'genetype'])
@@ -87,7 +91,7 @@ med_detected['sense'] = df['sense']
 med_detected['risk'] = df['risk']
 
 # 输出检测出的药物
-med_detected.to_excel(writer, 'medd', index=False)
+# med_detected.to_excel(writer, 'medd', index=False)
 
 # 同种药物的概括
 sense = {}
@@ -158,4 +162,5 @@ out_des.write(riskLow_des.encode('utf-8') + '\n')
 med_stan.to_excel(writer, 'medfound', index=False)
 writer.save()
 out_des.close()
+f.close()
 print 'task done'

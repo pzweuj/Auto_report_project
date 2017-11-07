@@ -1,13 +1,32 @@
 # 2017/09/29
 # pzw
 # 按下列例子修改
-# director: 
+# director: out-2017-09-21\GS02044-CancerDrug-out
 # 化疗药物专用
 # 请先人工处理analysis_v3.py得到的数据
 # 保存为temp.xlsx
 # 去重，删除矛盾药物
 # 发现bug请修改cancer_NTD_rs_checked.py
 # 药物list位于config\DataBase\med.xlsx
-# 修改好后运行cancer_NTD_rs_checked.py
 #################################################
-director: 
+director: .
+personalinfo:
+  name: 测试
+  gender: 男
+  date_of_birth: 2000-01-01
+  phone: '-'
+  ID: '-'
+  GSID: GS00000
+  project: 化疗药物基因检测
+  diagnostic: '-'
+  treatment: '-'
+  family: '-'
+
+otherinfo:
+  type: 外周血
+  amount: '-'
+  doctor: '-'
+  sampling_date: 20171111
+  collection_date: 20171112
+  report_date: 20171113
+  Inspection_agencies: HX

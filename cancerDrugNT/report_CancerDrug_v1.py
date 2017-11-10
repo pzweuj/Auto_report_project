@@ -1,3 +1,4 @@
+# !/usr/bin/python
 # encoding=utf-8
 # pzw
 # 2017/11/07
@@ -5,19 +6,21 @@ import sys
 import pandas as pd
 import yaml
 import docx
-import word_writer as writer
+import config.word_writer as writer
 
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-f = open('cancerDrugNoTarget.yaml')
-conf = yaml.load(f)
-templateFilePath = 'report_CD_v1_gs.docx'
-saveFilePath = 'CancerDrug_report.docx'
-df = pd.read_excel(conf['director'] + '\\' + 'temp.xlsx', sheetname = 0, header = 0)
+f = open('cancerDrugDir.yaml')
+dir = yaml.load(f)
+o = open(dir['director'] + '\\' + 'cancerDrugInfo.yaml')
+conf = yaml.load(o)
+templateFilePath = './config/report_CD_gs_v2.docx'
+saveFilePath = dir['director'] + '\\' + 'CancerDrug_report.docx'
+df = pd.read_excel(dir['director'] + '\\' + 'temp.xlsx', sheetname = 0, header = 0)
 med_stan = pd.read_excel(r'config\DataBase\med.xlsx', sheetname = 0, header = 0)
-# exwriter = pd.ExcelWriter(conf['director'] + '\\' + 'out_all.xlsx')
-out_des = open(conf['director'] + '\\' + 'out_des.txt', 'w')
+exwriter = pd.ExcelWriter(dir['director'] + '\\' + 'out_all.xlsx')
+out_des = open(dir['director'] + '\\' + 'out_des.txt', 'w')
 
 df.columns = ['med', 'gene', 'rsid', 'genetype', 'sen', 'pmid', 'level', 'cancer']
 var_detected = pd.DataFrame(columns=['gene', 'rsid', 'alle', 'genetype'])
@@ -177,15 +180,16 @@ del df['cancer']
 del df['sense']
 
 # 输出!
-# med_stan.to_excel(exwriter, 'medfound', index=False)
-# df.to_excel(exwriter, 'med_des', index=False)
-# var_selected.to_excel(exwriter, 'rsfound', index=False)
-# exwriter.save()
-med_stan.to_csv('med_stan.txt', index=False, sep='\t', header=None)
-df.to_csv('df.txt', index=False, sep='\t', header=None)
-var_selected.to_csv('var_selected.txt', index=False, sep='\t', header=None)
+med_stan.to_excel(exwriter, 'medfound', index=False)
+df.to_excel(exwriter, 'med_des', index=False)
+var_selected.to_excel(exwriter, 'rsfound', index=False)
+exwriter.save()
+# med_stan.to_csv(dir['director'] + '\\' + 'med_stan.txt', index=False, sep='\t', header=None)
+# df.to_csv(dir['director'] + '\\' + 'df.txt', index=False, sep='\t', header=None)
+# var_selected.to_csv(dir['director'] + '\\' + 'var_selected.txt', index=False, sep='\t', header=None)
 out_des.close()
 f.close()
+o.close()
 
 # 自动写入word
 report = docx.Document(unicode(templateFilePath, 'utf-8'))
@@ -211,8 +215,12 @@ resultMap['#[senseHigh_des]#'] = senseHigh_des
 resultMap['#[senseLow_des]#'] = senseLow_des
 resultMap['#[riskHigh_des]#'] = riskHigh_des
 resultMap['#[riskLow_des]#'] = riskLow_des
-resultMap['#[FILLTABLE-med_stan(0)]#'] = file('med_stan.txt').read()
 
+# 废弃的填写表格代码。有bug。这部分手动填写。
+# resultMap['#[FILLTABLE-med_stan]#'] = file(dir['director'] + '\\' + 'med_stan.txt').read()
+# resultMap['#[FILLTABLE-df]#'] = file(dir['director'] + '\\' + 'df.txt').read()
+
+# 填第一页
 if resultMap['#[gender]#'] == '男':
     resultMap['#[genderD]#'] = '先生'
 elif resultMap['#[gender]#'] == '女':
@@ -220,6 +228,32 @@ elif resultMap['#[gender]#'] == '女':
 else:
     resultMap['#[genderD]#'] = ''
 
+# 四个化疗药物基因检测结果
+if 'TPMT' in var_selected['gene'].values.tolist():
+    tp = var_selected['gene'].values.tolist().index('TPMT')
+    resultMap['#[TPMT]#'] = var_selected.iloc[tp,2]
+else:
+    resultMap['#[TPMT]#'] = '野生型'
+
+if 'UGT1A1' in var_selected['gene'].values.tolist():
+    tp = var_selected['gene'].values.tolist().index('UGT1A1')
+    resultMap['#[UGT1A1]#'] = var_selected.iloc[tp,2]
+else:
+    resultMap['#[UGT1A1]#'] = '野生型'
+
+if 'DPYD' in var_selected['gene'].values.tolist():
+    tp = var_selected['gene'].values.tolist().index('DPYD')
+    resultMap['#[DPYD]#'] = var_selected.iloc[tp,2]
+else:
+    resultMap['#[DPYD]#'] = '野生型'
+
+if 'CYP2D6' in var_selected['gene'].values.tolist():
+    tp = var_selected['gene'].values.tolist().index('CYP2D6')
+    resultMap['#[CYP2D6]#'] = var_selected.iloc[tp,2]
+else:
+    resultMap['#[CYP2D6]#'] = '野生型'
+
+
 report = writer.fillAnalyseResultMap(resultMap, report)
-report = writer.deleteEmptyTable(report,'#[FILLTABLE-')
+# report = writer.deleteEmptyTable(report,'#[FILLTABLE-')
 report.save(saveFilePath)

@@ -1,0 +1,20 @@
+personalinfo:
+  name: 测试
+  gender: 男
+  date_of_birth: 2000-01-01
+  phone: '-'
+  ID: '-'
+  GSID: GS00000
+  project: 化疗药物基因检测
+  diagnostic: '-'
+  treatment: '-'
+  family: '-'
+
+otherinfo:
+  type: 外周血
+  amount: '-'
+  doctor: '-'
+  sampling_date: 20171111
+  collection_date: 20171112
+  report_date: 20171113
+  Inspection_agencies: HX

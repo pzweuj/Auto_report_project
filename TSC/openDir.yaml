@@ -1,12 +1,16 @@
 # 2017/09/29
 # pzw
 # 按下列例子修改
-# director: out-2017-09-21\GS02044-CancerDrug-out
-# 化疗药物专用
-# 请先人工处理analysis_v3.py得到的数据
-# 保存为temp.xlsx
-# 去重，删除矛盾药物
-# 发现bug请修改cancer_NTD_rs_checked.py
-# 药物list位于config\DataBase\med.xlsx
+
 #################################################
 director: GS00000
+
+##下机数据数量
+amount: 2                    #填1或者2
+
+##当下机数据只有1个的时候填这里
+file0: alleles_IonXpress_095.xls
+
+##当下机数据是2个的时候填这里
+file1: alleles_IonXpress_095.xls
+file2: alleles_IonXpress_096.xls

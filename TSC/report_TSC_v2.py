@@ -1,7 +1,7 @@
-#! python2
+#!/usr/bin/python2.7
 # encoding=utf-8
 # pzw
-# 20171110
+# 20180102
 
 import pandas as pd
 import sys
@@ -11,39 +11,51 @@ import yaml
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-templateFilePath = './config/report_TSC_v1_gs.docx'
-ad = yaml.load(open('openDir.yaml', 'rb'))['director']
-conf = yaml.load(open(ad + '/' + 'TSCInfo', 'rb'))
+templateFilePath = './config/report_TSC_v2_gs.docx'
+dirinfo = yaml.load(open('openDir.yaml', 'rb'))
+ad = dirinfo['director']
+conf = yaml.load(open(ad + '/' + 'TSCInfo.yaml', 'rb'))
 saveFilePath = ad + '/' + 'TSC_report.docx'
-df1 = pd.read_csv(ad + '/' + "alleles_IonXpress_095.xls", sep="\t", header=0)
-df2 = pd.read_csv(ad + '/' + "alleles_IonXpress_096.xls", sep="\t", header=0)
+exwriter = pd.ExcelWriter(ad + '/' + 'results.xlsx')
 
-variant = pd.concat([df1, df2])
-variant.index = range(len(variant))
+if dirinfo['amount'] == 2:
+	file1 = dirinfo['file1']
+	file2 = dirinfo['file2']
+	df1 = pd.read_csv(ad + '/' + file1, sep="\t", header=0)
+	df2 = pd.read_csv(ad + '/' + file2, sep="\t", header=0)
 
-drop_index = []
-flag_len = len(variant)
-start = 0
-while start < flag_len:
-    name = variant.loc[start, 'Allele Name']
-    tmp_var = variant[variant['Allele Name'] == name]
-    if len(tmp_var) == 1:
-        continue
-    tmp_tmp_var = tmp_var[tmp_var['Allele Call'] != 'No Call']
+	variant = pd.concat([df1, df2])
+	variant.index = range(len(variant))
 
-    if len(tmp_tmp_var) > 0:
-        indexes = tmp_tmp_var.index
-        coverage = tmp_tmp_var['Coverage'].values.tolist()
-    else:
-        indexes = tmp_var.index
-        coverage = tmp_var['Coverage'].values.tolist()
+	drop_index = []
+	flag_len = len(variant)
+	start = 0
+	while start < flag_len:
+	    name = variant.loc[start, 'Allele Name']
+	    tmp_var = variant[variant['Allele Name'] == name]
+	    if len(tmp_var) == 1:
+	        continue
+	    tmp_tmp_var = tmp_var[tmp_var['Allele Call'] != 'No Call']
 
-    ind = coverage.index(max(coverage))
-    if indexes[ind] not in drop_index:
-        drop_index.append(indexes[ind])
-    start += 1
+	    if len(tmp_tmp_var) > 0:
+	        indexes = tmp_tmp_var.index
+	        coverage = tmp_tmp_var['Coverage'].values.tolist()
+	    else:
+	        indexes = tmp_var.index
+	        coverage = tmp_var['Coverage'].values.tolist()
 
-var_fmt = variant.drop(set(range(flag_len)) - set(drop_index))
+	    ind = coverage.index(max(coverage))
+	    if indexes[ind] not in drop_index:
+	        drop_index.append(indexes[ind])
+	    start += 1
+
+	var_fmt = variant.drop(set(range(flag_len)) - set(drop_index))
+elif dirinfo['amount'] == 1:
+	file0 = dirinfo['file0']
+	var_fmt = pd.read_table(ad + '/' + file0, header = 0, sep = '\t')
+else:
+	print 'Waring: Please check the origin file amount'
+
 # var_fmt.to_excel(ad + '/' + 'out.xlsx', index=False)
 
 # df3 = pd.read_excel(ad + '/' + 'out.xlsx', sheetname=0)
@@ -90,30 +102,32 @@ cleanTable.loc[cleanTable['Allele Call'].str.contains('Absent'), 'Allele Call'] 
 cleanTable.loc[cleanTable['Allele Call'].str.contains('Heterozygous'), 'Allele Call'] = 'Het'
 cleanTable.loc[cleanTable['Allele Call'].str.contains('Homozygous'), 'Allele Call'] = 'Hom'
 
-cleanTable.to_excel(ad + '/' + "result.xlsx", index=False)
+# cleanTable.to_excel(ad + '/' + "result.xlsx", index=False)
 del cleanTable['UniqueID']
 del cleanTable['Ref']
 del cleanTable['Alt']
 del cleanTable['CLNDBN']
 
-changeTable = cleanTable[(cleanTable['Allele Call'] == 'Homozygous') | (cleanTable['Allele Call'] == 'Heterozygous')]
-sumChange = len(changeTable.index)
+cleanTable.to_excel(exwriter, 'cleanTable', index=False)
 
-pathTable = cleanTable[cleanTable['Clinvar'].str.contains('Pathogenic') | cleanTable['Clinvar'].str.contains('Likely pathogenic')]
-sumPath = len(pathTable.index)
+sumChange = sum(cleanTable['Allele Call'] != 'Wt')
+sumPathogenic = sum(cleanTable['Clinvar'] == 'Pathogenic')
+sumLikelyPathogenic = sum(cleanTable['Clinvar'] == 'Likely pathogenic')
+sumOther = sumAll - sumPathogenic - sumLikelyPathogenic
+sumChangePathogenic = sum((cleanTable['Allele Call'] != 'Wt') & (cleanTable['Clinvar'] == 'Pathogenic'))
+sumChangeLikelyPathogenic = sum((cleanTable['Allele Call'] != 'Wt') & (cleanTable['Clinvar'] == 'Likely pathogenic'))
+sumChangeOther = sumChange - sumChangePathogenic - sumChangeLikelyPathogenic
 
-pathogenicTable = pathTable[pathTable['Clinvar'].str.contains('Pathogenic')]
-sumPathogenic = len(pathogenicTable.index)
-
-cpathTable = changeTable[changeTable['Clinvar'].str.contains('Pathogenic') | changeTable['Clinvar'].str.contains('Likely pathogenic')]
-sumcPath = len(cpathTable.index)
-
-cpathogenicTable = changeTable[changeTable['Clinvar'].str.contains('Pathogenic')]
-sumcPathogenic = len(cpathogenicTable.index)
-
-pathTableDC = pathTable[pathTable['Allele Call'].str.contains('Wt')]
+changeTable = cleanTable[cleanTable['Allele Call'] != 'Wt']
+otherTable = cleanTable[((cleanTable['Clinvar'] == 'Pathogenic') | (cleanTable['Clinvar'] == 'Likely pathogenic')) & (cleanTable['Allele Call'] == 'Wt')]
+changeTable.to_excel(exwriter, 'changeTable', index=False)
+otherTable.to_excel(exwriter, 'otherTable', index=False)
+exwriter.save()
+changeTable.to_csv(ad + '/' + 'changeTable.txt', index=False, sep='\t', header=None)
+otherTable.to_csv(ad + '/' + 'otherTable.txt', index=False, sep='\t', header=None)
 
 report = docx.Document(unicode(templateFilePath, 'utf-8'))
+
 resultMap = {}
 resultMap['#[name]#'] = conf['personalinfo']['name']
 resultMap['#[gender]#'] = conf['personalinfo']['gender']
@@ -133,16 +147,16 @@ resultMap['#[collection_date]#'] = conf['otherinfo']['collection_date']
 resultMap['#[report_date]#'] = conf['otherinfo']['report_date']
 resultMap['#[Inspection_agencies]#'] = conf['otherinfo']['Inspection_agencies']
 resultMap['#[pathogenic1]#'] = sumPathogenic
-resultMap['#[lp1]#'] = sumPath - sumPathogenic
-resultMap['#[other1]#'] = sumAll - sumPath
-resultMap['#[pathogenic2]#'] = sumcPathogenic
-resultMap['#[lp2]#'] = sumcPath - sumcPathogenic
-resultMap['#[other2]#'] = sumChange - sumcPath
-resultMap['#[FILLTABLE-change]#'] = cpathTable
-resultMap['#[FILLTABLE-DC]#'] = pathTableDC
-
+resultMap['#[lp1]#'] = sumLikelyPathogenic
+resultMap['#[other1]#'] = sumOther
+resultMap['#[pathogenic2]#'] = sumChangePathogenic
+resultMap['#[lp2]#'] = sumChangeLikelyPathogenic
+resultMap['#[other2]#'] = sumChangeOther
+resultMap['#[FILLTABLE-change]#'] = file(ad + '/' + 'changeTable.txt').read()
+# resultMap['#[FILLTABLE-DC]#'] = file(ad + '/' + 'otherTable.txt').read()
 
 report = writer.fillAnalyseResultMap(resultMap, report)
 # report = writer.deleteEmptyTable(report,'#[FILLTABLE-')
 report.save(saveFilePath)
+
 print 'task done'
